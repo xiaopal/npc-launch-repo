@@ -1,0 +1,60 @@
+---
+- hosts: localhost
+  gather_facts: no
+  tags: setup
+  vars:
+    npc_config:
+      ssh_key: 
+        name: ansible-tests
+      default_instance_image: Debian 8.6
+      default_instance_type:
+        cpu: 2
+        memory: 4G
+    npc_volumes:
+      - name: hd-test-{gw,{a..b}}
+        capacity: 100G
+        present: true
+    npc_instances: 
+      - name: 'debian-test-gw'
+        volumes:
+          - hd-test-gw
+        wan_ip: any
+        wan_capacity: 10m
+        ssh_host_by: wan_ip
+        groups:
+          - jump
+      - name: 'debian-test-w-{a..b}'
+        volumes:
+          - '*:hd-test-{a..b}'
+        ssh_jump_host: debian-test-gw
+        groups:
+          - worker
+  roles: 
+    - xiaopal.npc_setup
+  tasks:
+    - debug: msg={{groups["all"]}}
+    - wait_for: port=22 host="{{npc.instances['debian-test-gw'].wan_ip}}" search_regex=OpenSSH delay=5
+
+    
+- hosts: worker
+  tags: setup
+  tasks:
+    - ping:
+    - setup:
+
+- hosts: localhost
+  gather_facts: no
+  tags: cleanup
+  vars:
+    npc_setup:
+      add_hosts: false
+    npc_volumes:
+      - name: hd-test-{gw,{a..b}}
+        present: false
+    npc_instances: 
+      - name: 'debian-test-gw'
+        present: false
+      - name: 'debian-test-w-{a..b}'
+        present: false
+  roles: 
+    - xiaopal.npc_setup
