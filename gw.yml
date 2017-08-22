@@ -34,7 +34,6 @@
   tasks:
     - debug: msg={{groups["all"]}}
     - wait_for: port=22 host="{{npc.instances['debian-test-gw'].wan_ip}}" search_regex=OpenSSH delay=5
-
     
 - hosts: worker
   tags: setup
